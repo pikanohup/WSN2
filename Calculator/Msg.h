@@ -3,15 +3,17 @@
 
 enum {
     INTEGER_NUM = 2000,
-	AM_BLINKTORADIO = 0,
+    AM_BLINKTORADIO = 0,
     GROUP_ID = 17,
     SOURCE_ID = 1000,
-    DESTINATION_ID = 0
+    DESTINATION_ID = 0,
+    HELPER_ID_1 = 50,
+    HELPER_ID_2 = 51
 };
 
 typedef nx_struct DataMsg {
     nx_uint16_t sequence_number;
-	nx_uint32_t random_integer;
+    nx_uint32_t random_integer;
 } DataMsg;
 
 typedef nx_struct QueryMsg {

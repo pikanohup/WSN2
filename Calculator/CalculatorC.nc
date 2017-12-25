@@ -42,13 +42,13 @@
 module CalculatorC {
   uses {
     interface Boot;
-	
-	interface Timer<TMilli> as Timer;
+    
+    interface Timer<TMilli> as Timer;
     interface SplitControl as AMControl;
-	
+    
     interface AMSend;
     interface Receive;
-	interface Packet;
+    interface Packet;
     interface AMPacket;
 
     interface Leds;
@@ -57,17 +57,35 @@ module CalculatorC {
 implementation {
   uint32_t integers[INTEGER_NUM];
   bool received[INTEGER_NUM];
-   
+  uint16_t receivedNum, continuousNum;
+  bool isAllReceived, isAcked;
+  
+  bool busy;
   message_t queryPkt, answerPkt;
-  bool busy = FALSE;
+  QueryMsg queryMsg;
+  AnswerMsg answerMsg;
+
+  void receiveAndSort(DataMsg *dataMsg); 
+  bool checkDropout();
+  void calculate();
+  
+  task void sendQuery();
+  task void sendAnswer();
 
   event void Boot.booted() {
+    receivedNum = 0;
+    continuousNum = 0;
+    isAllReceived = FALSE;
+    isAcked = FALSE;
+    busy = TRUE;
+    
     call AMControl.start();
+    call Timer.startPeriodic(20);
   }
 
   event void AMControl.startDone(error_t error) {
     if (error == SUCCESS) {
-      call Timer.startPeriodic(20);
+      busy = FALSE;
     }
     else {
       call AMControl.start();
@@ -78,7 +96,14 @@ implementation {
   }
 
   event void Timer.fired() {
-    // TODO
+    if (isAllReceived) {
+      call Timer.stop();
+      return;
+    }   
+    if (checkDropout()) {
+      queryMsg.sequence_number = continuousNum + 1;
+      post sendQuery();
+    }
   }
 
   event void AMSend.sendDone(message_t* msg, error_t err) {
@@ -88,7 +113,32 @@ implementation {
   }
 
   event message_t* Receive.receive(message_t* msg, void* payload, uint8_t len){
-    // TODO
+    am_addr_t id;
+    DataMsg *dataPayload;
+    AckMsg *ackPayload;
+    
+    id = call AMPacket.source(msg);
+    if (len == sizeof(DataMsg)) {
+      if (id != SOURCE_ID && id != HELPER_ID_1 && id != HELPER_ID_2) {
+        return msg;
+      }
+      dataPayload = (DataMsg *)payload;
+      receiveAndSort(dataPayload);
+      checkDropout();
+      
+      if (isAllReceived && !isAcked) {
+        call Leds.led0Toggle();
+        calculate();
+        post sendAnswer();
+      }
+    }
+    else if (len == sizeof(AckMsg)) {
+      ackPayload = (AckMsg *)payload;
+      if (ackPayload->group_id == GROUP_ID) {
+        call Leds.led1Toggle();
+        isAcked = TRUE;         
+      }
+    }
     return msg;
   }
 }
