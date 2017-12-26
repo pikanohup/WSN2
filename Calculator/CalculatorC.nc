@@ -57,26 +57,22 @@ module CalculatorC {
 implementation {
   uint32_t integers[INTEGER_NUM];
   uint8_t received[INTEGER_NUM / 8 + 1];
-  uint16_t receivedNum, checkedNum;
+  uint16_t receivedNum;
   bool isAllReceived, isAcked;
   
   bool busy;
-  message_t queryPkt, answerPkt;
-  QueryMsg queryMsg;
+  message_t answerPkt;
   AnswerMsg answerMsg;
 
   bool isReceived(uint16_t index);
   void setReceived(uint16_t index);
-  void receiveAndSort(DataMsg *dataMsg); 
-  void checkDropout();
+  void receiveAndSort(DataMsg *dataMsg);
   void calculate();
   
-  task void sendQuery();
   task void sendAnswer();
  
   event void Boot.booted() {   
     receivedNum = 0;
-    checkedNum = 0;
     isAllReceived = FALSE;
     isAcked = FALSE;
     busy = TRUE;
@@ -102,16 +98,10 @@ implementation {
       call Timer.stop();
       return;
     }
-    checkDropout();
-    if (receivedNum != checkedNum) {
-      queryMsg.sequence_number = checkedNum + 1;
-      memcpy(call AMSend.getPayload(&queryPkt, sizeof(QueryMsg)), &queryMsg, sizeof(QueryMsg));
-      post sendQuery();
-    }
   }
 
   event void AMSend.sendDone(message_t* msg, error_t err) {
-    if (&queryPkt == msg || &answerPkt == msg) {
+    if (&answerPkt == msg) {
       busy = FALSE;
     }
   }
@@ -128,7 +118,6 @@ implementation {
       }
       dataPayload = (DataMsg *)payload;
       receiveAndSort(dataPayload);
-      checkDropout();
       
       if (isAllReceived && !isAcked) {
         call Leds.led0Toggle();
@@ -156,7 +145,7 @@ implementation {
   
   void receiveAndSort(DataMsg *dataMsg) {
     uint16_t i;
-    if (isReceived(dataMsg->sequence_number - 1)) {
+    if (isReceived(dataMsg->sequence_number-1)) {
       return;
     }
     for (i = 0; i < receivedNum; i++)
@@ -168,15 +157,6 @@ implementation {
     receivedNum++;
     if (receivedNum == INTEGER_NUM) {
       isAllReceived = TRUE;
-    }
-  }
-  
-  void checkDropout() {
-    while (checkedNum != receivedNum) {
-      if (!isReceived(checkedNum)) {
-        break;
-      }
-      checkedNum++;
     }
   }
   
@@ -193,20 +173,6 @@ implementation {
     answerMsg.median = (integers[INTEGER_NUM/2] + integers[INTEGER_NUM/2-1]) / 2;
     
     memcpy(call AMSend.getPayload(&answerPkt, sizeof(AnswerMsg)), &answerMsg, sizeof(AnswerMsg));
-  }
-  
-  task void sendQuery() {    
-    if (!busy) {
-      if (call AMSend.send(AM_BROADCAST_ADDR, &queryPkt, sizeof(QueryMsg)) == SUCCESS) {
-        busy = TRUE;
-      }
-      else {
-        post sendQuery();
-      }
-    }
-    else {
-      post sendQuery();
-    }   
   }
   
   task void sendAnswer() {    

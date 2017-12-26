@@ -16,10 +16,6 @@ typedef nx_struct DataMsg {
     nx_uint32_t random_integer;
 } DataMsg;
 
-typedef nx_struct QueryMsg {
-    nx_uint16_t sequence_number;
-} QueryMsg;
-
 typedef nx_struct AnswerMsg {
     nx_uint8_t group_id;
     nx_uint32_t max;
