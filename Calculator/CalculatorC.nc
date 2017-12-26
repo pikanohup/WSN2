@@ -66,13 +66,13 @@ implementation {
   AnswerMsg answerMsg;
 
   void receiveAndSort(DataMsg *dataMsg); 
-  bool checkDropout();
+  void checkDropout();
   void calculate();
   
   task void sendQuery();
   task void sendAnswer();
 
-  event void Boot.booted() {
+  event void Boot.booted() {   
     receivedNum = 0;
     continuousNum = 0;
     isAllReceived = FALSE;
@@ -99,9 +99,11 @@ implementation {
     if (isAllReceived) {
       call Timer.stop();
       return;
-    }   
-    if (checkDropout()) {
+    }
+    checkDropout();
+    if (receivedNum != continuousNum) {
       queryMsg.sequence_number = continuousNum + 1;
+      memcpy(call AMSend.getPayload(&queryPkt, sizeof(QueryMsg)), &queryMsg, sizeof(QueryMsg));
       post sendQuery();
     }
   }
@@ -112,7 +114,7 @@ implementation {
     }
   }
 
-  event message_t* Receive.receive(message_t* msg, void* payload, uint8_t len){
+  event message_t* Receive.receive(message_t* msg, void* payload, uint8_t len) {
     am_addr_t id;
     DataMsg *dataPayload;
     AckMsg *ackPayload;
@@ -128,7 +130,7 @@ implementation {
       
       if (isAllReceived && !isAcked) {
         call Leds.led0Toggle();
-        calculate();
+        calculate();       
         post sendAnswer();
       }
     }
@@ -141,4 +143,74 @@ implementation {
     }
     return msg;
   }
+  
+  void receiveAndSort(DataMsg *dataMsg) {
+    uint16_t i;
+    if (*(received + dataMsg->sequence_number-1)) {
+      return;
+    }
+    for (i = 0; i < receivedNum; i++)
+        if (*(integers+i) > dataMsg->random_integer)
+            break;
+    memmove(integers+i+1, integers+i, (receivedNum-i)*sizeof(uint32_t));    
+    *(received + dataMsg->sequence_number - 1) = TRUE;
+    *(integers + i) = dataMsg->random_integer;   
+    receivedNum++;
+    if (receivedNum == INTEGER_NUM) {
+      isAllReceived = TRUE;
+    }
+  }
+  
+  void checkDropout() {
+    while (continuousNum != receivedNum) {
+      if (*(received + continuousNum) == FALSE) {
+        break;
+      }
+      continuousNum++;
+    }
+  }
+  
+  void calculate() {
+    uint16_t i;  
+    answerMsg.group_id = GROUP_ID;
+    
+    answerMsg.max = *(integers + INTEGER_NUM - 1);
+    answerMsg.min = *integers;   
+    answerMsg.sum = 0;
+    for (i = 0; i < INTEGER_NUM; ++i)
+        answerMsg.sum += *(integers + i);
+    answerMsg.average = answerMsg.sum / INTEGER_NUM;   
+    answerMsg.median = (integers[INTEGER_NUM/2] + integers[INTEGER_NUM/2-1]) / 2;
+    
+    memcpy(call AMSend.getPayload(&answerPkt, sizeof(AnswerMsg)), &answerMsg, sizeof(AnswerMsg));
+  }
+  
+  task void sendQuery() {    
+    if (!busy) {
+      if (call AMSend.send(AM_BROADCAST_ADDR, &queryPkt, sizeof(QueryMsg)) == SUCCESS) {
+        busy = TRUE;
+      }
+      else {
+        post sendQuery();
+      }
+    }
+    else {
+      post sendQuery();
+    }   
+  }
+  
+  task void sendAnswer() {    
+    if (!busy) {
+      if (call AMSend.send(AM_BROADCAST_ADDR, &answerPkt, sizeof(AnswerMsg)) == SUCCESS) {
+        busy = TRUE;
+      }
+      else {
+        post sendAnswer();
+      }
+    }
+    else {
+      post sendAnswer();
+    }   
+  }
+  
 }
