@@ -36,10 +36,11 @@
  * @author Prabal Dutta
  * @date   Feb 1, 2006
  */
-#include <Timer.h>
+#include "Timer.h"
 #include "Msg.h"
+#include "printf.h"
 
-module CalculatorC {
+module HelperC {
   uses {
     interface Boot;
     interface SplitControl as AMControl;   
@@ -48,17 +49,21 @@ module CalculatorC {
     interface Packet;
     interface AMPacket;
     interface Leds;
+    interface Timer<TMilli> as Timer0;
   }
 }
 implementation {
   bool Busy = FALSE;
   nx_uint16_t cur_sequence_number;
   nx_uint32_t cur_random_integer;
+  nx_uint32_t num;
   message_t help_packet;
 
   event void Boot.booted() {
     cur_sequence_number = 0;
     cur_random_integer = 0;
+    num = 0;
+    call Timer0.startPeriodic(1000);
     call AMControl.start();
   }
 
@@ -68,6 +73,12 @@ implementation {
     else {
       call AMControl.start();
     }
+  }
+
+  event void Timer0.fired() {
+    call Leds.led0Toggle();
+    printf("%d\n",cur_sequence_number);
+    printfflush();
   }
 
   event void AMControl.stopDone(error_t error) {
@@ -86,9 +97,12 @@ implementation {
        response_packet = (DataMsg *)(call Packet.getPayload(&help_packet, sizeof(DataMsg)));
        response_packet -> sequence_number = cur_sequence_number;
        response_packet -> random_integer = cur_random_integer;
-       if (call AMSend.send(AM_BROADCAST_ADDR, &help_packet, sizeof(DataMsg)) == SUCCESS) {
-          busy = TRUE;
-       }
+       if(Busy == FALSE) {
+          if (call AMSend.send(AM_BROADCAST_ADDR, &help_packet, sizeof(DataMsg)) == SUCCESS) {
+             Busy = TRUE;
+          }
+       } 
+       call Leds.led2Toggle();
     }
   }
 }

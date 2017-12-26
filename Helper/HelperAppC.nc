@@ -41,26 +41,25 @@
 
 #include "printf.h"
 #include "Msg.h"
+#include "Timer.h"
 
-configuration CalculatorAppC {
+configuration HelperAppC {
 }
 implementation {
-  components MainC, CalculatorC, LedsC;
-  components new TimerMilliC() as Timer;
+  components MainC, HelperC, LedsC;
   components ActiveMessageC;
   components new AMSenderC(AM_BLINKTORADIO);
   components new AMReceiverC(AM_BLINKTORADIO);
   components SerialStartC, PrintfC;
+  components new TimerMilliC() as Timer0;
 
-  MainC.Boot <- CalculatorC;
-  
-  CalculatorC.Timer -> Timer;
-  CalculatorC.AMControl -> ActiveMessageC;
-  
-  CalculatorC.Packet -> AMSenderC;
-  CalculatorC.AMPacket -> AMSenderC;
-  CalculatorC.AMSend -> AMSenderC;
-  CalculatorC.Receive -> AMReceiverC;
-  
-  CalculatorC.Leds -> LedsC;
+  HelperC.Boot -> MainC;
+  HelperC.Leds -> LedsC;
+  HelperC.AMControl -> ActiveMessageC; 
+  HelperC.Packet -> AMSenderC;
+  HelperC.AMPacket -> AMSenderC;
+  HelperC.AMSend -> AMSenderC;
+  HelperC.Receive -> AMReceiverC;
+  HelperC.Timer0 -> Timer0;
 }
+
