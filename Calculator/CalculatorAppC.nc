@@ -46,15 +46,12 @@ configuration CalculatorAppC {
 }
 implementation {
   components MainC, CalculatorC, LedsC;
-  components new TimerMilliC() as Timer;
   components ActiveMessageC;
   components new AMSenderC(AM_BLINKTORADIO);
   components new AMReceiverC(AM_BLINKTORADIO);
   components SerialStartC, PrintfC;
 
   MainC.Boot <- CalculatorC;
-  
-  CalculatorC.Timer -> Timer;
   CalculatorC.AMControl -> ActiveMessageC;
   
   CalculatorC.Packet -> AMSenderC;
