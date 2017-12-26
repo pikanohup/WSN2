@@ -36,14 +36,13 @@
  * @author Prabal Dutta
  * @date   Feb 1, 2006
  */
-#include <Timer.h>
+
 #include "Msg.h"
 
 module CalculatorC {
   uses {
     interface Boot;
     
-    interface Timer<TMilli> as Timer;
     interface SplitControl as AMControl;
     
     interface AMSend;
@@ -78,7 +77,6 @@ implementation {
     busy = TRUE;
     
     call AMControl.start();
-    call Timer.startPeriodic(20);
   }
 
   event void AMControl.startDone(error_t error) {
@@ -91,13 +89,6 @@ implementation {
   }
 
   event void AMControl.stopDone(error_t error) {
-  }
-
-  event void Timer.fired() {
-    if (isAllReceived) {
-      call Timer.stop();
-      return;
-    }
   }
 
   event void AMSend.sendDone(message_t* msg, error_t err) {
@@ -117,6 +108,11 @@ implementation {
         return msg;
       }
       dataPayload = (DataMsg *)payload;
+      if (isReceived(dataPayload->sequence_number-1)) {
+        return msg;
+      }
+      printf("%d %d\n", id, dataPayload->sequence_number);
+      printfflush();
       receiveAndSort(dataPayload);
       
       if (isAllReceived && !isAcked) {
@@ -147,9 +143,6 @@ implementation {
   
   void receiveAndSort(DataMsg *dataMsg) {
     uint16_t i;
-    if (isReceived(dataMsg->sequence_number-1)) {
-      return;
-    }
     for (i = 0; i < receivedNum; i++)
         if (*(integers+i) > dataMsg->random_integer)
             break;
