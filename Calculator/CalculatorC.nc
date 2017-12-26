@@ -57,7 +57,7 @@ module CalculatorC {
 implementation {
   uint32_t integers[INTEGER_NUM];
   uint8_t received[INTEGER_NUM / 8 + 1];
-  uint16_t receivedNum, continuousNum;
+  uint16_t receivedNum, checkedNum;
   bool isAllReceived, isAcked;
   
   bool busy;
@@ -65,24 +65,18 @@ implementation {
   QueryMsg queryMsg;
   AnswerMsg answerMsg;
 
+  bool isReceived(uint16_t index);
+  void setReceived(uint16_t index);
   void receiveAndSort(DataMsg *dataMsg); 
   void checkDropout();
   void calculate();
   
   task void sendQuery();
   task void sendAnswer();
-
-  bool isReceived(uint16_t index) {
-    return (*(received + index/8) & (1 << (7-index%8))) != 0;
-  }
-  
-  void setReceived(uint16_t index) {
-    *(received + index/8) |= (1 << (7-index%8));
-  }
-    
+ 
   event void Boot.booted() {   
     receivedNum = 0;
-    continuousNum = 0;
+    checkedNum = 0;
     isAllReceived = FALSE;
     isAcked = FALSE;
     busy = TRUE;
@@ -109,8 +103,8 @@ implementation {
       return;
     }
     checkDropout();
-    if (receivedNum != continuousNum) {
-      queryMsg.sequence_number = continuousNum + 1;
+    if (receivedNum != checkedNum) {
+      queryMsg.sequence_number = checkedNum + 1;
       memcpy(call AMSend.getPayload(&queryPkt, sizeof(QueryMsg)), &queryMsg, sizeof(QueryMsg));
       post sendQuery();
     }
@@ -152,6 +146,14 @@ implementation {
     return msg;
   }
   
+  bool isReceived(uint16_t index) {
+    return (*(received + index/8) & (1 << (7-index%8))) != 0;
+  }
+  
+  void setReceived(uint16_t index) {
+    *(received + index/8) |= (1 << (7-index%8));
+  }
+  
   void receiveAndSort(DataMsg *dataMsg) {
     uint16_t i;
     if (isReceived(dataMsg->sequence_number - 1)) {
@@ -170,11 +172,11 @@ implementation {
   }
   
   void checkDropout() {
-    while (continuousNum != receivedNum) {
-      if (!isReceived(continuousNum)) {
+    while (checkedNum != receivedNum) {
+      if (!isReceived(checkedNum)) {
         break;
       }
-      continuousNum++;
+      checkedNum++;
     }
   }
   
