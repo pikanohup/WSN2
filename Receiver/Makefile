@@ -1,3 +1,3 @@
-COMPONENT=BlinkToRadioAppC
+COMPONENT=ReceiverAppC
 CFLAGS += -I$(TOSDIR)/lib/printf
 include $(MAKERULES)
