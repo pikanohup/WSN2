@@ -129,7 +129,9 @@ implementation {
       ackPayload = (AckMsg *)payload;
       if (ackPayload->group_id == GROUP_ID) {
         call Leds.led1Toggle();
-        isAcked = TRUE;         
+        isAcked = TRUE;
+        printf("ACK OH YEAH\n");
+        printfflush();
       }
     }
     return msg;
@@ -171,6 +173,11 @@ implementation {
         answerMsg.sum += *(integers + i);
     answerMsg.average = answerMsg.sum / INTEGER_NUM;   
     answerMsg.median = (integers[INTEGER_NUM/2] + integers[INTEGER_NUM/2-1]) / 2;
+    
+    printf("max=%ld, min=%ld, sum=%ld, average=%ld, median=%ld\n",
+                        answerMsg.max, answerMsg.min, answerMsg.sum, answerMsg.average,
+                        answerMsg.median);
+    printfflush();
     
     memcpy(call AMSend.getPayload(&answerPkt, sizeof(AnswerMsg)), &answerMsg, sizeof(AnswerMsg));
   }
