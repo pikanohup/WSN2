@@ -56,7 +56,7 @@ module CalculatorC {
 }
 implementation {
   uint32_t integers[INTEGER_NUM];
-  bool received[INTEGER_NUM];
+  uint8_t received[INTEGER_NUM / 8 + 1];
   uint16_t receivedNum, continuousNum;
   bool isAllReceived, isAcked;
   
@@ -72,6 +72,14 @@ implementation {
   task void sendQuery();
   task void sendAnswer();
 
+  bool isReceived(uint16_t index) {
+    return (*(received + index/8) & (1 << (7-index%8))) != 0;
+  }
+  
+  void setReceived(uint16_t index) {
+    *(received + index/8) |= (1 << (7-index%8));
+  }
+    
   event void Boot.booted() {   
     receivedNum = 0;
     continuousNum = 0;
@@ -146,14 +154,14 @@ implementation {
   
   void receiveAndSort(DataMsg *dataMsg) {
     uint16_t i;
-    if (*(received + dataMsg->sequence_number-1)) {
+    if (isReceived(dataMsg->sequence_number - 1)) {
       return;
     }
     for (i = 0; i < receivedNum; i++)
         if (*(integers+i) > dataMsg->random_integer)
             break;
     memmove(integers+i+1, integers+i, (receivedNum-i)*sizeof(uint32_t));    
-    *(received + dataMsg->sequence_number - 1) = TRUE;
+    setReceived(dataMsg->sequence_number-1);
     *(integers + i) = dataMsg->random_integer;   
     receivedNum++;
     if (receivedNum == INTEGER_NUM) {
@@ -163,7 +171,7 @@ implementation {
   
   void checkDropout() {
     while (continuousNum != receivedNum) {
-      if (*(received + continuousNum) == FALSE) {
+      if (!isReceived(continuousNum)) {
         break;
       }
       continuousNum++;
