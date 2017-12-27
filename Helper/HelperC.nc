@@ -103,6 +103,9 @@ implementation {
           }
        } 
        call Leds.led2Toggle();
+       printf("%d\n", cur_sequence_number);
+       printfflush();
     }
+    return msg;
   }
 }

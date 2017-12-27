@@ -53,9 +53,9 @@ implementation {
       call Leds.led2Toggle();     // received
 
       if (checkPacket(packet)) {
-        printf("Correct result!")
+        printf("Correct result!");
       } else {
-        printf("Wrong result...")
+        printf("Wrong result...");
       }
 
       if (!busy) {

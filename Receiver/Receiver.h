@@ -8,7 +8,7 @@ enum {
     ANS_MSG_AVERAGE = 2499,
     ANS_MSG_MEDIAN = 2484,
     AM_ID = 0
-}
+};
 
 typedef nx_struct AckMsg {
     nx_uint8_t group_id;
