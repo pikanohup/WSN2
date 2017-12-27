@@ -49,7 +49,6 @@ module HelperC {
     interface Packet;
     interface AMPacket;
     interface Leds;
-    interface Timer<TMilli> as Timer0;
   }
 }
 implementation {
@@ -63,7 +62,6 @@ implementation {
     cur_sequence_number = 0;
     cur_random_integer = 0;
     num = 0;
-    call Timer0.startPeriodic(1000);
     call AMControl.start();
   }
 
@@ -73,12 +71,6 @@ implementation {
     else {
       call AMControl.start();
     }
-  }
-
-  event void Timer0.fired() {
-    call Leds.led0Toggle();
-    printf("%d\n",cur_sequence_number);
-    printfflush();
   }
 
   event void AMControl.stopDone(error_t error) {
@@ -101,8 +93,11 @@ implementation {
           if (call AMSend.send(AM_BROADCAST_ADDR, &help_packet, sizeof(DataMsg)) == SUCCESS) {
              Busy = TRUE;
           }
-       } 
-       call Leds.led2Toggle();
-    }
+       }
+       printf("%d\n",cur_sequence_number);
+       printfflush(); 
+    }  
+    return msg;
   }
+  
 }
