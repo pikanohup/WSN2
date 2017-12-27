@@ -93,10 +93,18 @@ implementation {
           if (call AMSend.send(AM_BROADCAST_ADDR, &help_packet, sizeof(DataMsg)) == SUCCESS) {
              Busy = TRUE;
           }
+<<<<<<< HEAD
        }
        printf("%d\n",cur_sequence_number);
        printfflush(); 
     }  
+=======
+       } 
+       call Leds.led2Toggle();
+       printf("%d\n", cur_sequence_number);
+       printfflush();
+    }
+>>>>>>> 1dc4b456959c82d3caf8fbee5b46089b0e597292
     return msg;
   }
   
