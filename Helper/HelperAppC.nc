@@ -51,7 +51,6 @@ implementation {
   components new AMSenderC(AM_BLINKTORADIO);
   components new AMReceiverC(AM_BLINKTORADIO);
   components SerialStartC, PrintfC;
-  components new TimerMilliC() as Timer0;
 
   HelperC.Boot -> MainC;
   HelperC.Leds -> LedsC;
@@ -60,6 +59,4 @@ implementation {
   HelperC.AMPacket -> AMSenderC;
   HelperC.AMSend -> AMSenderC;
   HelperC.Receive -> AMReceiverC;
-  HelperC.Timer0 -> Timer0;
 }
-
